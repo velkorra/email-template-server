@@ -1,0 +1,54 @@
+{
+  "name": "email-template-server",
+  "version": "1.0.0",
+  "description": "Create Express app is a tamplate which is use to Create a express app templete api",
+  "main": "src/app.js",
+  "bin": {
+    "create-express": "./bin/createExpress.js"
+  },
+  "private": "true",
+  "scripts": {
+    "start": "npx tsc && nodemon dist/src/app.js",
+    "build": "npx tsc",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/app.js\" ",
+    "test": "jest --watchAll --detectOpenHandles --verbose"
+  },
+  "keywords": [
+    "create-express-app",
+    "express-app-template",
+    "create-express-server",
+    "express-server",
+    "express with typescript",
+    "create-express-with-typescript",
+    "Typescript express Server",
+    "express server",
+    "configure express server"
+  ],
+  "author": "velkorra",
+  "license": "ISC",
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "bcrypt": "^5.1.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "email-template-server": "file:",
+    "express": "^4.21.0",
+    "express-async-errors": "^3.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.0"
+  },
+  "devDependencies": {
+    "@types/argon2": "^0.15.0",
+    "@types/express": "^4.17.14",
+    "@types/jest": "^29.2.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^18.11.9",
+    "concurrently": "^7.5.0",
+    "nodemon": "^2.0.20",
+    "supertest": "^6.3.1",
+    "ts-jest": "^29.0.3",
+    "typescript": "^4.9.5"
+  }
+}
