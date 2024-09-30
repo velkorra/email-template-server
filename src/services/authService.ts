@@ -61,10 +61,10 @@ export class AuthService {
     }
 
     async createNewSession(user: IUser) {
-        const token = await AuthService.generateRefreshToken(user);
+        const {token, hahsedToken} = await AuthService.generateRefreshToken(user);
         const refreshToken = new RefreshToken({
             userId: user._id,
-            token,
+            token: hahsedToken,
             expires: new Date(Date.now() + 60 * 1000),
         });
         await refreshToken.save();
@@ -90,7 +90,7 @@ export class AuthService {
     private static async generateRefreshToken(user: IUser) {
         const token = randomBytes(64).toString("hex");
         const hahsedToken = await argon2.hash(token);
-        return hahsedToken;
+        return {token, hahsedToken};
     }
 
     private static async verifyRefreshToken(
