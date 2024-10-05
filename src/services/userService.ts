@@ -1,4 +1,5 @@
 import { UserDto } from "../dto/dto";
+import { UserExistsError } from "../errors/UserExistsError";
 import { User } from "../models/User";
 
 export class UserService {
