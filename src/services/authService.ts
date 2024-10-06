@@ -7,7 +7,8 @@ import { UnauthorizedError } from "../errors/UnauthorizedError";
 import { randomBytes } from "crypto";
 import * as argon2 from "argon2";
 import { IRefreshToken, RefreshToken } from "../models/RefreshToken";
-
+import { RefreshTokenExpiredError } from "../errors/RefreshTokenExpiredError";
+import { v4 as uuidv4 } from "uuid";
 const _JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 
 if (!_JWT_ACCESS_SECRET) {
@@ -31,26 +32,45 @@ export class AuthService {
             throw new LoginError();
         }
         const accessToken = AuthService.generateAccessToken(user);
-        const refreshToken = await this.createNewSession(user);
+        const { tokenId, token } = await this.createNewSession(user);
+        const refreshToken = tokenId + "." + token;
         return { accessToken, refreshToken };
     }
 
-    verifyLogin(token: string | undefined) {
-        if (!token) {
-            throw new UnauthorizedError("No token provided");
-        }
+    async verifyLogin(
+        accessToken: string | undefined,
+        refreshToken: string | undefined
+    ): Promise<{ email: string; newAccessToken?: string | null }> {
         try {
-            const payload = AuthService.verifyToken(token) as UserJwtPayload;
-            return payload.email;
-        } catch (error) {
-            if (error instanceof jwt.TokenExpiredError) {
-                throw new UnauthorizedError("Token expired");
+            if (accessToken) {
+                const payload = AuthService.verifyToken(
+                    accessToken
+                ) as UserJwtPayload;
+                return { email: payload.email };
             }
-            throw error;
+            throw new Error();
+        } catch (error) {
+            if (refreshToken) {
+                const [tokenId, tokenValue] = refreshToken.split(".");
+                try {
+                    const user = await this.verifyByRefresh(
+                        tokenId,
+                        tokenValue
+                    );
+                    const newAccessToken =
+                        AuthService.generateAccessToken(user);
+                    return { email: user.email, newAccessToken };
+                } catch (error) {
+                    if (error instanceof RefreshTokenExpiredError) {
+                        throw new UnauthorizedError("Token expired");
+                    }
+                    throw error;
+                }
+            } else throw new UnauthorizedError("No token provided");
         }
     }
 
-    private static generateAccessToken(user: UserDto) {
+    private static generateAccessToken(user: UserDto | IUser) {
         return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
             expiresIn: "15m",
         });
@@ -61,42 +81,50 @@ export class AuthService {
     }
 
     async createNewSession(user: IUser) {
-        const {token, hahsedToken} = await AuthService.generateRefreshToken(user);
+        const { token, hahsedToken } = await AuthService.generateRefreshToken(
+            user
+        );
+        const tokenId = uuidv4();
         const refreshToken = new RefreshToken({
             userId: user._id,
             token: hahsedToken,
-            expires: new Date(Date.now() + 60 * 1000),
+            tokenId: tokenId,
+            expires: new Date(Date.now() + 60 * 60 * 1000), // 1 Hour, in future change to 7 or more days
         });
         await refreshToken.save();
-        return token;
+        return { tokenId, token };
     }
 
-    async getSessionUser(token: string) {
-        const refreshTokens: IRefreshToken[] = await RefreshToken.find()
+    async verifyByRefresh(tokenId: string, tokenValue: string) {
+        const refreshToken = await RefreshToken.findOne({ tokenId })
             .populate("userId")
             .exec();
-
-        for (const refreshToken of refreshTokens) {
-            const isValid = await AuthService.verifyRefreshToken(
-                token,
-                refreshToken.token
-            );
-            if (isValid && refreshToken.userId) {
+        if (!refreshToken) {
+            throw new UnauthorizedError("Invalid tokeId");
+        }
+        const isValid = await AuthService.verifyRefreshToken(
+            tokenValue,
+            refreshToken.token
+        );
+        if (isValid && refreshToken.userId) {
+            if (new Date().getTime() < refreshToken.expires.getTime()) {
                 return refreshToken.userId as IUser;
             }
+            throw new RefreshTokenExpiredError("Refresh Token Expired");
         }
+
         throw new UnauthorizedError("Invalid token");
     }
     private static async generateRefreshToken(user: IUser) {
         const token = randomBytes(64).toString("hex");
         const hahsedToken = await argon2.hash(token);
-        return {token, hahsedToken};
+        return { token, hahsedToken };
     }
 
     private static async verifyRefreshToken(
         token: string,
         hashedToken: string
     ) {
-        return await argon2.verify(token, hashedToken);
+        return await argon2.verify(hashedToken, token);
     }
 }

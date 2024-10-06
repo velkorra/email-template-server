@@ -11,12 +11,19 @@ export function RequireAuth(roles: string[] = []) {
             key,
             async (req: Request, res: Response, next: NextFunction) => {
                 try {
-                    const email = authService.verifyLogin(
-                        req.headers.authorization?.replace("Bearer ", "")
-                    ) as string;
+                    const { email, newAccessToken } =
+                        await authService.verifyLogin(
+                            req.headers.authorization?.replace("Bearer ", ""),
+                            req.cookies.refreshToken
+                        );
 
                     req.user = { email };
-
+                    if (newAccessToken) {
+                        res.setHeader(
+                            "Authorization",
+                            "Bearer " + newAccessToken
+                        );
+                    }
                     next();
                 } catch (error) {
                     if (error instanceof UnauthorizedError) {

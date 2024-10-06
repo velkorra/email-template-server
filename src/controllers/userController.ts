@@ -1,6 +1,14 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/userService";
-import { Body, Controller, Get, Post, Req, Res, Status } from "@decorators/express";
+import {
+    Body,
+    Controller,
+    Get,
+    Post,
+    Req,
+    Res,
+    Status,
+} from "@decorators/express";
 import { UserExistsError } from "../errors/UserExistsError";
 import { RequireAuth } from "../middleware/Middleware";
 import { AuthService } from "../services/authService";
@@ -29,9 +37,7 @@ export class UserController {
     @RequireAuth()
     @Get("/account")
     async account(@Req() req: Request, @Res() res: Response) {
-        console.log(req.cookies);
-        
-        const response = { email: req.user?.email};
+        const response = { email: req.user?.email };
         res.status(200).json(response);
     }
 
@@ -45,10 +51,8 @@ export class UserController {
                 secure: true,
                 httpOnly: true,
             });
-            res.status(200).json({
-                message: "Login successful",
-                accessToken: accessToken,
-            });
+            res.setHeader("Authorization", "Bearer " + accessToken);
+            res.status(200).send();
         } catch (error) {
             if (error instanceof LoginError) {
                 res.status(401).send(error.message);
