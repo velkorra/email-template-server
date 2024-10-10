@@ -9,6 +9,7 @@ import * as argon2 from "argon2";
 import { IRefreshToken, RefreshToken } from "../models/RefreshToken";
 import { RefreshTokenExpiredError } from "../errors/RefreshTokenExpiredError";
 import { v4 as uuidv4 } from "uuid";
+import { MissingEnvVariableError } from "../errors/MissingEnvVariableError";
 const _JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 
 if (!_JWT_ACCESS_SECRET) {

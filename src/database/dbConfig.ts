@@ -1,5 +1,6 @@
 import { connect } from "mongoose";
 import { configDotenv } from "dotenv";
+import { MissingEnvVariableError } from "../errors/MissingEnvVariableError";
 
 configDotenv();
 
