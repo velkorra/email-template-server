@@ -32,15 +32,23 @@ export class AuthService {
             throw new LoginError();
         }
 
+        // Если пользователь был создан через Google (без пароля), выдаем ошибку
+        if (!user.password) {
+            throw new LoginError();
+        }
+
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
             throw new LoginError();
         }
+
         const accessToken = AuthService.generateAccessToken(user);
-        const { tokenId, token } = await this.createNewSession(user);
+        const { tokenId, token } = await AuthService.createNewSession(user);
+
         const refreshToken = tokenId + "." + token;
         return { accessToken, refreshToken };
     }
+
 
     async verifyLogin(
         accessToken: string | undefined,
@@ -69,17 +77,21 @@ export class AuthService {
         }
     }
 
-    private static generateAccessToken(user: IUser) {
-        return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
-            expiresIn: "15m",
-        });
+    // static generateAccessToken(user: IUser) {
+    //     return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
+    //         expiresIn: "15m",
+    //     });
+    // }
+    static generateAccessToken(user: IUser) {
+        return jwt.sign({ email: user.email }, process.env.JWT_ACCESS_SECRET!, {
+            expiresIn: '15m' });
     }
 
     static verifyToken(token: string) {
         return jwt.verify(token, JWT_ACCESS_SECRET);
     }
 
-    async createNewSession(user: IUser) {
+    static async createNewSession(user: IUser) {
         const existingToken = await RefreshToken.findOne({
             userId: user._id
         });
@@ -110,6 +122,7 @@ export class AuthService {
 
 
 
+
     async verifyByRefresh(tokenId: string, tokenValue: string) {
         const refreshToken = await RefreshToken.findOne({ tokenId })
             .populate("userId")
@@ -118,7 +131,6 @@ export class AuthService {
             throw new UnauthorizedError("Invalid tokenId");
         }
 
-        // Проверка на устаревание токена
         if (new Date() > refreshToken.expires) {
             throw new RefreshTokenExpiredError("Refresh Token Expired");
         }
