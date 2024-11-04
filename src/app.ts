@@ -21,13 +21,13 @@ app.use(cors());
 app.use(json());
 app.use(cookieParser());
 app.use(urlencoded({ extended: true }));
-const middleware = (req: Request, res: Response, next: NextFunction) => {
-    console.log(`${req.method} ${req.url}`);
-    next();
-};
-
-app.use(middleware);
 attachControllers(app, [UserController]);
+app.use((req, res, next) => {
+    res.on('finish', () => {
+      console.log(`${req.method} ${req.path} ${res.statusCode} ${res.statusMessage}`);
+    });
+    next();
+  });
 initializeDatabase()
     .then(() => {
         app.listen(PORT, () => {
