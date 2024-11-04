@@ -1,15 +1,19 @@
-import { UserDto } from "../dto/dto";
-import { LoginError } from "../errors/LoginError";
 import { IUser, User } from "../models/User";
-import jwt, { Secret } from "jsonwebtoken";
-import UserJwtPayload from "../types/UserJwtPayload";
+import { IRefreshToken, RefreshToken } from "../models/RefreshToken";
+import { LoginError } from "../errors/LoginError";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
+import { RefreshTokenExpiredError } from "../errors/RefreshTokenExpiredError";
+import UserJwtPayload from "../types/UserJwtPayload";
+import jwt, { Secret } from "jsonwebtoken";
 import { randomBytes } from "crypto";
 import * as argon2 from "argon2";
-import { IRefreshToken, RefreshToken } from "../models/RefreshToken";
-import { RefreshTokenExpiredError } from "../errors/RefreshTokenExpiredError";
 import { v4 as uuidv4 } from "uuid";
 import { MissingEnvVariableError } from "../errors/MissingEnvVariableError";
+import { UserDto } from "../dto/dto";
+import { Types } from "mongoose";
+
+
+
 const _JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 
 if (!_JWT_ACCESS_SECRET) {
@@ -44,9 +48,7 @@ export class AuthService {
     ): Promise<{ email: string; newAccessToken?: string | null }> {
         try {
             if (accessToken) {
-                const payload = AuthService.verifyToken(
-                    accessToken
-                ) as UserJwtPayload;
+                const payload = AuthService.verifyToken(accessToken) as UserJwtPayload;
                 return { email: payload.email };
             }
             throw new Error();
@@ -54,12 +56,8 @@ export class AuthService {
             if (refreshToken) {
                 const [tokenId, tokenValue] = refreshToken.split(".");
                 try {
-                    const user = await this.verifyByRefresh(
-                        tokenId,
-                        tokenValue
-                    );
-                    const newAccessToken =
-                        AuthService.generateAccessToken(user);
+                    const user = await this.verifyByRefresh(tokenId, tokenValue);
+                    const newAccessToken = AuthService.generateAccessToken(user);
                     return { email: user.email, newAccessToken };
                 } catch (error) {
                     if (error instanceof RefreshTokenExpiredError) {
@@ -71,7 +69,7 @@ export class AuthService {
         }
     }
 
-    private static generateAccessToken(user: UserDto | IUser) {
+    private static generateAccessToken(user: IUser) {
         return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
             expiresIn: "15m",
         });
@@ -82,50 +80,73 @@ export class AuthService {
     }
 
     async createNewSession(user: IUser) {
-        const { token, hahsedToken } = await AuthService.generateRefreshToken(
-            user
-        );
+        const existingToken = await RefreshToken.findOne({
+            userId: user._id
+        });
+
+        if (existingToken) {
+            if (existingToken.expires > new Date()) {
+                return { tokenId: existingToken.tokenId, token: existingToken.token };
+            }
+
+            await existingToken.deleteOne();
+        }
+
+        const { token, hashedToken } = await AuthService.generateRefreshToken(user);
         const tokenId = uuidv4();
+
         const refreshToken = new RefreshToken({
             userId: user._id,
-            token: hahsedToken,
+            token: hashedToken,
             tokenId: tokenId,
-            expires: new Date(Date.now() + 60 * 60 * 1000), // 1 Hour, in future change to 7 or more days
+            expires: new Date(Date.now() + 60 * 60 * 1000), // 1 час
         });
         await refreshToken.save();
+
         return { tokenId, token };
     }
+
+
+
+
 
     async verifyByRefresh(tokenId: string, tokenValue: string) {
         const refreshToken = await RefreshToken.findOne({ tokenId })
             .populate("userId")
             .exec();
         if (!refreshToken) {
-            throw new UnauthorizedError("Invalid tokeId");
+            throw new UnauthorizedError("Invalid tokenId");
         }
-        const isValid = await AuthService.verifyRefreshToken(
-            tokenValue,
-            refreshToken.token
-        );
-        if (isValid && refreshToken.userId) {
-            if (new Date().getTime() < refreshToken.expires.getTime()) {
-                return refreshToken.userId as IUser;
-            }
+
+        // Проверка на устаревание токена
+        if (new Date() > refreshToken.expires) {
             throw new RefreshTokenExpiredError("Refresh Token Expired");
+        }
+
+        const isValid = await AuthService.verifyRefreshToken(tokenValue, refreshToken.token);
+        if (isValid && refreshToken.userId) {
+            return refreshToken.userId as IUser;
         }
 
         throw new UnauthorizedError("Invalid token");
     }
-    private static async generateRefreshToken(user: IUser) {
-        const token = randomBytes(64).toString("hex");
-        const hahsedToken = await argon2.hash(token);
-        return { token, hahsedToken };
+
+
+    private async cleanUpExpiredTokens(userId: Types.ObjectId) {
+        const now = new Date();
+        await RefreshToken.deleteMany({
+            userId,
+            expires: { $lt: now }
+        });
     }
 
-    private static async verifyRefreshToken(
-        token: string,
-        hashedToken: string
-    ) {
+    private static async generateRefreshToken(user: IUser) {
+        const token = randomBytes(64).toString("hex");
+        const hashedToken = await argon2.hash(token);
+        return { token, hashedToken };
+    }
+
+    private static async verifyRefreshToken(token: string, hashedToken: string) {
         return await argon2.verify(hashedToken, token);
     }
 }
