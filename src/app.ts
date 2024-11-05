@@ -1,8 +1,7 @@
+import { configDotenv } from "dotenv";
+configDotenv();
 import {
-    Request,
-    Response,
     Express,
-    NextFunction,
     urlencoded,
     json,
 } from "express";
@@ -10,13 +9,11 @@ import express from "express";
 import { initializeDatabase } from "./database/dbConfig";
 import { attachControllers } from "@decorators/express";
 import { UserController } from "./controllers/userController";
-import { CorsOptions } from "cors";
 import cors from 'cors';
 import cookieParser from "cookie-parser";
 
 const app: Express = express();
 const PORT: Number = 5000;
-
 app.use(cors());
 app.use(json());
 app.use(cookieParser());

@@ -1,8 +1,6 @@
 import { connect } from "mongoose";
-import { configDotenv } from "dotenv";
 import { MissingEnvVariableError } from "../errors/MissingEnvVariableError";
 
-configDotenv();
 
 const mongoUri: unknown = process.env.MONGO_URI;
 
