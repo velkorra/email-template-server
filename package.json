@@ -40,6 +40,8 @@
     "express-async-errors": "^3.1.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "reflect-metadata": "^0.2.2",
     "uuid": "^10.0.0"
   },
@@ -50,6 +52,8 @@
     "@types/jest": "^29.2.2",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^18.11.9",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.16",
     "@types/uuid": "^10.0.0",
     "concurrently": "^7.5.0",
     "nodemon": "^2.0.20",
