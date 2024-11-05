@@ -11,31 +11,29 @@ export function RequireAuth(roles: string[] = []) {
             key,
             async (req: Request, res: Response, next: NextFunction) => {
                 try {
-                    const { email, newAccessToken } =
-                        await authService.verifyLogin(
-                            req.headers.authorization?.replace("Bearer ", ""),
-                            req.cookies.refreshToken
-                        );
+                    const authHeader = req.headers.authorization;
+                    const accessToken = authHeader ? authHeader.replace("Bearer ", "") : req.cookies.accessToken;
+
+                    if (!accessToken) {
+                        throw new UnauthorizedError("No token provided");
+                    }
+
+                    const { email, newAccessToken } = await authService.verifyLogin(accessToken, req.cookies.refreshToken);
 
                     req.user = { email };
                     if (newAccessToken) {
-                        res.setHeader(
-                            "Authorization",
-                            "Bearer " + newAccessToken
-                        );
+                        res.setHeader("Authorization", "Bearer " + newAccessToken);
                     }
+
                     next();
                 } catch (error) {
                     if (error instanceof UnauthorizedError) {
-                        return res
-                            .status(401)
-                            .send({ message: "Authorization failed" });
+                        return res.status(401).json({ message: "Authorization failed" });
                     }
-                    return res
-                        .status(500)
-                        .json({ message: "Internal Server Error" });
+                    return res.status(500).json({ message: "Internal Server Error" });
                 }
             }
         );
     };
 }
+

@@ -9,13 +9,16 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, required: false }, // делаем пароль необязательным
 });
 
+
 UserSchema.pre<IUser>("save", async function (next) {
-    if (!this.isModified("password")) {
+    // Если пароля нет, пропускаем хеширование
+    if (!this.password || !this.isModified("password")) {
         return next();
     }
+
     try {
         const hash = await argon2.hash(this.password);
         this.password = hash;
@@ -25,13 +28,16 @@ UserSchema.pre<IUser>("save", async function (next) {
     }
 });
 
+
 UserSchema.methods.comparePassword = async function (
     candidatePassword: string
 ): Promise<boolean> {
+    if (!this.password) return false;
     try {
         return await argon2.verify(this.password, candidatePassword);
     } catch (error) {
         return false;
     }
 };
+
 export const User = model<IUser>("User", UserSchema);
