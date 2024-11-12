@@ -4,6 +4,7 @@ import {
     Body,
     Controller,
     Get,
+    Post,
     Req,
     Res,
 } from "@decorators/express";
@@ -12,7 +13,7 @@ import { RequireAuth } from "../middleware/Middleware";
 import { AuthService } from "../services/authService";
 import { LoginError } from "../errors/LoginError";
 import { UserDto } from "../dto/dto";
-import { IUser } from "../models/User";
+import { AuthenticatedUser } from "../types/AuthenticatedUser";
 
 @Controller("/users")
 export class UserController {
@@ -36,16 +37,15 @@ export class UserController {
         }
     }
 
-
     @RequireAuth()
     @Get("/account")
     async account(@Req() req: Request, @Res() res: Response) {
-        const user = req.user as IUser;
+        const user = req.user as AuthenticatedUser;
         const response = { email: user.email };
         res.status(200).json(response);
     }
 
-    @Get("/login")
+    @Post("/login")
     async login(@Req() req: Request, @Res() res: Response) {
         try {
             const { accessToken, refreshToken } = await this.authService.login(

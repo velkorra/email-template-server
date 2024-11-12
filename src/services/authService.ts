@@ -32,7 +32,6 @@ export class AuthService {
             throw new LoginError();
         }
 
-        // Если пользователь был создан через Google (без пароля), выдаем ошибку
         if (!user.password) {
             throw new LoginError();
         }
@@ -77,33 +76,17 @@ export class AuthService {
         }
     }
 
-    // static generateAccessToken(user: IUser) {
-    //     return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
-    //         expiresIn: "15m",
-    //     });
-    // }
     static generateAccessToken(user: IUser) {
-        return jwt.sign({ email: user.email }, process.env.JWT_ACCESS_SECRET!, {
-            expiresIn: '15m' });
+        return jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
+            expiresIn: "15m",
+        });
     }
-
+    
     static verifyToken(token: string) {
         return jwt.verify(token, JWT_ACCESS_SECRET);
     }
 
     static async createNewSession(user: IUser) {
-        const existingToken = await RefreshToken.findOne({
-            userId: user._id
-        });
-
-        if (existingToken) {
-            if (existingToken.expires > new Date()) {
-                return { tokenId: existingToken.tokenId, token: existingToken.token };
-            }
-
-            await existingToken.deleteOne();
-        }
-
         const { token, hashedToken } = await AuthService.generateRefreshToken(user);
         const tokenId = uuidv4();
 

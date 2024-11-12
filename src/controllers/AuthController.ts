@@ -2,20 +2,19 @@ import passport from 'passport';
 import { AuthService } from "../services/authService";
 import { Controller, Get, Next, Req, Res } from "@decorators/express";
 import { Request, Response, NextFunction } from "express";
+import { IUser } from '../models/User';
 
 @Controller("/auth")
 export class AuthController {
 
     @Get("/google")
-    googleAuth() {
-        return passport.authenticate("google", { scope: ["profile", "email"] });
+    googleAuth(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
+        return passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
     }
 
-
-    @Get("/google/callback")
     @Get("/google/callback")
     googleAuthCallback(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
-        passport.authenticate("google", { failureRedirect: "/" }, async (err: any, user) => {
+        passport.authenticate("google", { failureRedirect: "/" }, async (err: any, user: IUser) => {
             if (err || !user) {
                 console.error("Authentication error:", err);
                 return res.status(500).json({ message: "Internal Server Error" });

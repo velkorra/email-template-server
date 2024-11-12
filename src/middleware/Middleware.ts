@@ -14,10 +14,6 @@ export function RequireAuth(roles: string[] = []) {
                     const authHeader = req.headers.authorization;
                     const accessToken = authHeader ? authHeader.replace("Bearer ", "") : req.cookies.accessToken;
 
-                    if (!accessToken) {
-                        throw new UnauthorizedError("No token provided");
-                    }
-
                     const { email, newAccessToken } = await authService.verifyLogin(accessToken, req.cookies.refreshToken);
 
                     req.user = { email };
