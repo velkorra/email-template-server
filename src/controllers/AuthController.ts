@@ -29,7 +29,10 @@ export class AuthController {
             res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
 
             res.setHeader("Authorization", "Bearer " + accessToken);
-            res.redirect("/users/account");
+            res.send(`<script>
+                window.opener.postMessage('success', '*');
+                window.close();
+              </script>`);
         })(req, res, next);
     }
 
