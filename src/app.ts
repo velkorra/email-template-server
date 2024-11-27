@@ -6,6 +6,8 @@ import { initializeDatabase } from "./database/dbConfig";
 import { attachControllers } from "@decorators/express";
 import { UserController } from "./controllers/userController";
 import { AuthController } from "./controllers/AuthController";
+import { ProjectController } from "./controllers/ProjectController"; 
+import { LetterController } from "./controllers/LetterController"; 
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import passport from "passport";
@@ -13,7 +15,6 @@ import "./config/passportConfig";
 
 const app: Express = express();
 
-//idk it looks awful mb prettify somehow
 const { origin: ORIGIN, host: HOST, port: PORT } = (() => {
     const origin = process.env.ORIGIN;
     const host = process.env.HOST;
@@ -30,7 +31,14 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());
-attachControllers(app, [UserController, AuthController]);
+
+attachControllers(app, [
+    UserController,
+    AuthController,
+    ProjectController,
+    LetterController  
+]);
+
 app.use((req, res, next) => {
     res.on("finish", () => {
         console.log(
@@ -39,6 +47,7 @@ app.use((req, res, next) => {
     });
     next();
 });
+
 initializeDatabase()
     .then(() => {
         app.listen(PORT, () => {
