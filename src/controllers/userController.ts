@@ -12,8 +12,9 @@ import { UserExistsError } from "../errors/UserExistsError";
 import { RequireAuth } from "../middleware/Middleware";
 import { AuthService } from "../services/authService";
 import { LoginError } from "../errors/LoginError";
-import { UserDto } from "../dto/dto";
+import { CreateUserDto } from "../dto/dto";
 import { AuthenticatedUser } from "../types/AuthenticatedUser";
+import { emit } from "process";
 
 @Controller("/users")
 export class UserController {
@@ -21,7 +22,7 @@ export class UserController {
     userService = new UserService();
 
     @Get("/register")
-    async register(@Body() user: UserDto, @Res() res: Response) {
+    async register(@Body() user: CreateUserDto, @Res() res: Response) {
         try {
             if (!user.password) {
                 return res.status(400).send("Пароль обязателен при обычной регистрации");
@@ -38,32 +39,12 @@ export class UserController {
     }
 
     @RequireAuth()
-    @Get("/account")
+    @Get("/me")
     async account(@Req() req: Request, @Res() res: Response) {
         const user = req.user as AuthenticatedUser;
-        const response = { email: user.email };
+        const response = { user: {email: user.email} };
         res.status(200).json(response);
     }
 
-    @Post("/login")
-    async login(@Req() req: Request, @Res() res: Response) {
-        try {
-            const { accessToken, refreshToken } = await this.authService.login(
-                req.body
-            );
-            res.cookie("refreshToken", refreshToken, {
-                secure: true,
-                httpOnly: true,
-            });
-            res.setHeader("Authorization", "Bearer " + accessToken);
-            res.status(200).send();
-        } catch (error) {
-            if (error instanceof LoginError) {
-                res.status(401).send(error.message);
-                return;
-            }
-            console.error(error);
-            res.status(500).json({ message: "Internal Server Error" });
-        }
-    }
+    
 }

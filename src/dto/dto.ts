@@ -1,3 +1,3 @@
 import { IUser } from "../models/User";
 
-export type UserDto = Pick<IUser, "email" | "password">
+export type CreateUserDto = Pick<IUser, "email" | "password">

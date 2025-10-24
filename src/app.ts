@@ -15,18 +15,23 @@ import "./config/passportConfig";
 
 const app: Express = express();
 
-const { origin: ORIGIN, host: HOST, port: PORT } = (() => {
-    const origin = process.env.ORIGIN;
+const ORIGIN = process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [];
+
+const { host: HOST, port: PORT } = (() => {
     const host = process.env.HOST;
     const port = process.env.PORT;
-    if (!origin || !host || !port) {
-        console.log("missing env variables");
+    if (!host || !port) {
+        console.log("Missing env variables");
         process.exit(1);
     }
-    return { origin, host, port };
+    return { host, port };
 })();
 
-app.use(cors({credentials: true, origin: ORIGIN, exposedHeaders: ["Authorization"],}));
+app.use(cors({
+    credentials: true,
+    origin: ORIGIN.length ? ORIGIN : "*", // Если пусто — разрешить всё
+    exposedHeaders: ["Authorization"],
+}));
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());

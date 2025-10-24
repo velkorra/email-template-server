@@ -1,10 +1,10 @@
-import { UserDto } from "../dto/dto";
+import { CreateUserDto } from "../dto/dto";
 import { UserExistsError } from "../errors/UserExistsError";
 import { User } from "../models/User";
 import { AuthService } from "./authService";
 
 export class UserService {
-    async createUser(user: UserDto) {
+    async createUser(user: CreateUserDto) {
         try {
             const existingUser = await User.findOne({ email: user.email });
             if (existingUser) {

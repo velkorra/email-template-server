@@ -9,7 +9,7 @@ import { randomBytes } from "crypto";
 import * as argon2 from "argon2";
 import { v4 as uuidv4 } from "uuid";
 import { MissingEnvVariableError } from "../errors/MissingEnvVariableError";
-import { UserDto } from "../dto/dto";
+import { CreateUserDto } from "../dto/dto";
 import { Types } from "mongoose";
 
 
@@ -23,9 +23,13 @@ if (!_JWT_ACCESS_SECRET) {
 const JWT_ACCESS_SECRET = _JWT_ACCESS_SECRET as Secret;
 
 export class AuthService {
-    async login(userDto: UserDto) {
+    async login(userDto: CreateUserDto) {
         const email = userDto.email;
         const password = userDto.password;
+
+        if (!email || !password){
+            throw new LoginError();
+        }
 
         const user = await User.findOne({ email });
         if (!user) {
